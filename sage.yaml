@@ -1,0 +1,12 @@
+name: "wildfire-deepstream"
+version: "0.1.0"
+description: "DeepStream + YOLO fire and smoke detection for Jetson Thor"
+keywords: "wildfire, smoke, deepstream, yolo, jetson"
+authors: "Veda Y"
+collaborators: ""
+funding: ""
+license: ""
+homepage: "https://github.com/VedaY28/SAGE-Deepstream-Yolo"
+source:
+  architectures:
+    - "linux/arm64"

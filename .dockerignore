@@ -1,0 +1,5 @@
+.git
+*.engine
+results/
+run_config.txt
+models/

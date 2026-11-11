@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.onnx binary
+*.so binary
+*.mp4 binary
+*.pt binary
