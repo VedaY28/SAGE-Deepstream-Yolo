@@ -2,7 +2,7 @@
 
 A Sage app that runs YOLO11-based fire and smoke detection on video with NVIDIA DeepStream, built for the Jetson AGX Thor.
 
-The app takes a video file, runs it through DeepStream with a TensorRT engine built from the model, counts fire and smoke detections, and publishes the results with pywaggle.
+The app takes a video file or a live RTSP camera stream, runs it through DeepStream with a TensorRT engine built from the model, counts fire and smoke detections, and publishes the results with pywaggle.
 
 ## Status
 
@@ -13,10 +13,11 @@ Tested on JetPack 7.0 (Jetson Linux R38.2.2) with DeepStream 8.0.
 
 ## How it works
 
-1. `main.py` copies `deepstream_app_config.txt` and sets the input `uri` from `--source`.
+1. `main.py` copies `deepstream_app_config.txt` and sets the input `uri` from `--source`. An `rtsp://` URL switches DeepStream to a live RTSP source.
 2. It runs `deepstream-app` on that config and reads its output, printing it and picking out the FPS readings.
-3. DeepStream writes the detections to KITTI-format text files, one per frame. `main.py` counts them by class (`Fire`, `Smoke`).
+3. DeepStream writes the detections to KITTI-format text files, one per frame. `main.py` reads and deletes them every `--interval` seconds and counts them by class (`Fire`, `Smoke`).
 4. The counts and FPS are published with `waggle.plugin`. Outside a Sage node, pywaggle runs in a local mode and nothing is uploaded.
+5. A video file run ends when the video ends. A live stream runs until `--duration` elapses or the job is stopped.
 
 ## Usage
 
@@ -37,11 +38,22 @@ sudo docker run --rm --runtime nvidia \
   wildfire-app --source /videos/my_clip.mp4
 ```
 
+Run on a live RTSP camera:
+
+```bash
+sudo docker run --rm --runtime nvidia \
+  wildfire-app --source rtsp://<camera-address>/<path> --duration 600 --interval 30
+```
+
+The camera must be reachable from the host running the container. The RTSP URL is not printed in the logs.
+
 ### Arguments
 
 | Argument | Default | Description |
 |---|---|---|
-| `--source` | `samples/sample1.mp4` | Path to a video file |
+| `--source` | `samples/sample1.mp4` | Path to a video file or an `rtsp://` URL |
+| `--duration` | `0` | Stop after this many seconds of pipeline run time. `0` runs until the video ends or the job is stopped |
+| `--interval` | `60` | Seconds between published detection counts |
 
 ### Example output
 
@@ -57,13 +69,12 @@ Average FPS: 249.0
 
 | Name | Description |
 |---|---|
-| `env.detection.fire.count` | Fire detections (boxes) in the run |
-| `env.detection.fire.frames` | Frames with at least one fire detection |
-| `env.detection.smoke.count` | Smoke detections (boxes) in the run |
-| `env.detection.smoke.frames` | Frames with at least one smoke detection |
+| `env.detection.fire.count` | Fire detections (boxes) since the previous publish |
+| `env.detection.fire.frames` | Frames with at least one fire detection since the previous publish |
+| `env.detection.smoke.count` | Smoke detections (boxes) since the previous publish |
+| `env.detection.smoke.frames` | Frames with at least one smoke detection since the previous publish |
 | `env.deepstream.fps` | Each FPS reading from DeepStream |
-| `env.deepstream.fps.avg` | Mean of the FPS readings |
-| `env.deepstream.runtime_sec` | Pipeline run time, excluding the engine build |
+| `env.deepstream.fps.avg` | Mean of the FPS readings, published at the end of the run |
 
 
 ## Repository layout
